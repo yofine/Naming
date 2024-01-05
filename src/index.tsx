@@ -1,77 +1,91 @@
-import { AI, List, Icon, ActionPanel, Action } from "@raycast/api";
+/* eslint-disable no-empty */
+import { useState, useRef } from "react";
+import { AI, List, Icon, ActionPanel, Action, Detail } from "@raycast/api";
 import { getPrompt } from "./utils";
-import { LANGS } from "./cons";
-import { useState } from "react";
-import _ from "lodash";
-
-interface Config {
-  model: AI.Model;
-  locale: string;
-}
+import { LANGS, DEFAULT_CONFIG } from "./cons";
+import { Name, Config, Mode } from "./interfaces";
+import Empty from "./components/Empty";
+import ListItem from "./components/ListItem";
 
 export default function Command() {
-  const [lang, setLang] = useState<string>("Javascript");
-  const [data, setData] = useState<Record<string, string>[]>([]);
-  const [desc, setDesc] = useState<string>();
+  const langRef = useRef<string>("");
+  const searchTextRef = useRef<string>("");
+  const [mode, setMode] = useState<Mode>("SEARCH");
+  const [data, setData] = useState<string | Name[]>([]);
   const [isLoading, setLoading] = useState<boolean>(false);
-  const config: Config = {
-    model: "gpt-3.5-turbo",
-    locale: "en_US",
-  };
+  const [showingDetail, setShowingDetail] = useState<boolean>(false);
+  const config = DEFAULT_CONFIG as Config;
 
-  const ask = async () => {
-    if (desc && lang) {
+  const submit = async () => {
+    if (langRef.current && searchTextRef.current) {
       setLoading(true);
-      const prompt = getPrompt({ locale: config.locale, lang: lang, description: desc });
+      const prompt = getPrompt({ locale: config.locale, lang: langRef.current, description: searchTextRef.current });
       const answer = await AI.ask(prompt, { model: config.model });
-      console.log("🚀 ~ file: index.tsx:27 ~ ask", answer);
-      let res = [];
+      let res;
       try {
         res = JSON.parse(answer);
+        setShowingDetail(true);
+        setMode("INPUT");
       } catch (error) {
-        console.log("🚀 ~ file: index.tsx:32 ~ ask ~ error:", error);
+        res = answer;
+        setMode("VIEW");
       }
-      console.log("🚀 ~ file: index.tsx:29 ~ ask ~ res:", res);
       setData(res);
       setLoading(false);
     }
   };
 
-  const renderName = ({ name, reason }) => {
-    return <List.Item key={name} title={name} subtitle={reason} />;
+  const renderNameItem = (name: Name, index: number): JSX.Element => {
+    return <ListItem key={name.name} name={name} index={index} />;
   };
 
-  console.log(data, "data");
+  const handleLangChange = (value: string) => {
+    langRef.current = value;
+    submit();
+  };
+
+  const handleSearchTextChange = (value: string) => {
+    searchTextRef.current = value;
+  };
+
+  if (mode === "VIEW") {
+    return (
+      <Detail
+        markdown={data as string}
+        actions={
+          <ActionPanel>
+            <Action title="Search" icon={Icon.Book} onAction={() => setMode("SEARCH")} />
+          </ActionPanel>
+        }
+      />
+    );
+  }
 
   return (
     <List
       isLoading={isLoading}
+      isShowingDetail={showingDetail}
       searchBarAccessory={
-        <List.Dropdown tooltip="Select Lang" value={lang} onChange={(value) => setLang(value)}>
+        <List.Dropdown tooltip="Select Lang" onChange={handleLangChange}>
           {LANGS.map((lang: string, index: number) => (
             <List.Dropdown.Item title={lang} value={lang} key={`${lang}-${index}`} />
           ))}
         </List.Dropdown>
       }
-      onSearchTextChange={(value: string) => setDesc(value)}
+      onSearchTextChange={handleSearchTextChange}
       actions={
         <ActionPanel>
-          <Action title="Submit" icon={Icon.Book} onAction={() => ask()} />
+          <Action title="Submit" icon={Icon.Book} onAction={() => submit()} />
         </ActionPanel>
       }
     >
-      {data && data.length ? (
-        data?.map(renderName)
+      {data && data.length && typeof data !== "string" ? (
+        <List.Section title="Names" subtitle={`${data.length}`}>
+          {data?.map(renderNameItem)}
+        </List.Section>
       ) : (
-        <List.EmptyView
-          title="Type anything!"
-          description={
-            "Type your text and hit the enter key\n⌘+P to change language. Using *Switch to Translate ...* to switch from/to."
-          }
-          icon={Icon.QuestionMark}
-        />
+        <Empty />
       )}
     </List>
   );
-  return;
 }

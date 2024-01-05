@@ -15,7 +15,7 @@ export const getPrompt = ({ locale = "en_US", lang = "javascript", description =
 - 必须深入理解用户描述信息中的使用场景
 - 起名结果必须符合 ${lang} 语言的使用习惯
 - 名字必须是英文
-- 每次生成 3 个命名备选，并附带描述起名的理由
+- 每次生成 5 个命名备选，并附带描述起名的理由
 
 ## 用户描述
 ${description}

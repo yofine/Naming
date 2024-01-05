@@ -1,3 +1,8 @@
+export const DEFAULT_CONFIG = {
+  model: "gpt-4",
+  locale: "zh_CN",
+};
+
 export const LANGS = [
   "A# .NET",
   "A# (Axiom)",
