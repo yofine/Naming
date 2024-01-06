@@ -2,10 +2,8 @@ import { List, Icon } from "@raycast/api";
 
 const Empty = () => (
   <List.EmptyView
-    title="Type anything!"
-    description={
-      "Type your text and hit the enter key\n⌘+P to change language. Using *Switch to Translate ...* to switch from/to."
-    }
+    title="Type your requirements!"
+    description={"Type your requirements and hit the enter key\n⌘+P to change language."}
     icon={Icon.QuestionMark}
   />
 );

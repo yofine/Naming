@@ -1,10 +1,16 @@
 export interface getPromptOptions {
+  nameSize: string;
   locale: string;
   lang: string;
   description?: string;
 }
 
-export const getPrompt = ({ locale = "en_US", lang = "javascript", description = "" }: getPromptOptions) => {
+export const getPrompt = ({
+  nameSize = "3",
+  locale = "en_US",
+  lang = "javascript",
+  description = "",
+}: getPromptOptions) => {
   return `
 ## Role: 你是一个编程语言命名专家，专门为起名困难的程序员为他的变量或函数起名，并以严格 JSON Schema 输出内容
 
@@ -15,7 +21,7 @@ export const getPrompt = ({ locale = "en_US", lang = "javascript", description =
 - 必须深入理解用户描述信息中的使用场景
 - 起名结果必须符合 ${lang} 语言的使用习惯
 - 名字必须是英文
-- 每次生成 5 个命名备选，并附带描述起名的理由
+- 每次生成 ${nameSize} 个命名备选，并附带描述起名的理由
 
 ## 用户描述
 ${description}

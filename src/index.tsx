@@ -1,31 +1,49 @@
 /* eslint-disable no-empty */
 import { useState, useRef } from "react";
-import { AI, List, Icon, ActionPanel, Action, Detail } from "@raycast/api";
+import { AI, List, Icon, ActionPanel, Action, Detail, getPreferenceValues, environment } from "@raycast/api";
 import { getPrompt } from "./utils";
 import { LANGS, DEFAULT_CONFIG } from "./cons";
 import { Name, Config, Mode } from "./interfaces";
 import Empty from "./components/Empty";
 import ListItem from "./components/ListItem";
+import PermissionStatement from "./components/PermissionStatement";
+
+export interface Preferences {
+  programLang: string;
+  nameSize: string;
+}
 
 export default function Command() {
-  const langRef = useRef<string>("");
+  const canAccessAI = environment.canAccess(AI);
+  const preferences = getPreferenceValues<Preferences>();
+  const langRef = useRef<string>(preferences.programLang || "");
   const searchTextRef = useRef<string>("");
+  const [searchText, setSearchText] = useState<string>("");
   const [mode, setMode] = useState<Mode>("SEARCH");
   const [data, setData] = useState<string | Name[]>([]);
   const [isLoading, setLoading] = useState<boolean>(false);
   const [showingDetail, setShowingDetail] = useState<boolean>(false);
   const config = DEFAULT_CONFIG as Config;
 
+  if (!canAccessAI) {
+    return <PermissionStatement />;
+  }
+
   const submit = async () => {
     if (langRef.current && searchTextRef.current) {
       setLoading(true);
-      const prompt = getPrompt({ locale: config.locale, lang: langRef.current, description: searchTextRef.current });
+      const prompt = getPrompt({
+        nameSize: preferences.nameSize,
+        locale: config.locale,
+        lang: langRef.current,
+        description: searchTextRef.current,
+      });
       const answer = await AI.ask(prompt, { model: config.model });
       let res;
       try {
         res = JSON.parse(answer);
         setShowingDetail(true);
-        setMode("INPUT");
+        setMode("SEARCH");
       } catch (error) {
         res = answer;
         setMode("VIEW");
@@ -36,7 +54,7 @@ export default function Command() {
   };
 
   const renderNameItem = (name: Name, index: number): JSX.Element => {
-    return <ListItem key={name.name} name={name} index={index} />;
+    return <ListItem key={name.name} name={name} index={index} submit={submit} />;
   };
 
   const handleLangChange = (value: string) => {
@@ -46,6 +64,7 @@ export default function Command() {
 
   const handleSearchTextChange = (value: string) => {
     searchTextRef.current = value;
+    setSearchText(value);
   };
 
   if (mode === "VIEW") {
@@ -54,7 +73,14 @@ export default function Command() {
         markdown={data as string}
         actions={
           <ActionPanel>
-            <Action title="Search" icon={Icon.Book} onAction={() => setMode("SEARCH")} />
+            <Action
+              title="Back to Naming"
+              icon={Icon.Book}
+              onAction={() => {
+                setMode("SEARCH");
+                searchTextRef.current = "";
+              }}
+            />
           </ActionPanel>
         }
       />
@@ -65,8 +91,10 @@ export default function Command() {
     <List
       isLoading={isLoading}
       isShowingDetail={showingDetail}
+      searchBarPlaceholder="Describe..."
+      searchText={searchText}
       searchBarAccessory={
-        <List.Dropdown tooltip="Select Lang" onChange={handleLangChange}>
+        <List.Dropdown tooltip="Select Language" defaultValue={langRef.current} onChange={handleLangChange}>
           {LANGS.map((lang: string, index: number) => (
             <List.Dropdown.Item title={lang} value={lang} key={`${lang}-${index}`} />
           ))}
@@ -75,7 +103,7 @@ export default function Command() {
       onSearchTextChange={handleSearchTextChange}
       actions={
         <ActionPanel>
-          <Action title="Submit" icon={Icon.Book} onAction={() => submit()} />
+          <Action title="Naming" icon={Icon.Book} onAction={() => submit()} />
         </ActionPanel>
       }
     >
